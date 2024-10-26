@@ -28,7 +28,6 @@ int val1 = 0;  // DIG4 용 변수
 
 const int DELAY = 1000;  // led display delay
 int val = 0;
-int prevVal = 0;
 int digitpin[5] = { -1, d4, d3, d2, d1 };
 
 #define _0 {    LOW, LOW, LOW, LOW, LOW, LOW, HIGH }
@@ -91,7 +90,6 @@ void loop(){
       pickNumber(val1);
       delayMicroseconds(DELAY);
 	}
-  prevVal = val;
  }
 }
 int getTemp(){
