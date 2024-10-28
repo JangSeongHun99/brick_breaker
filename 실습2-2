@@ -26,11 +26,6 @@ byte segValue[10] = {
   0b00001001, //9 
 };
 byte digitPin[4] = { 2, 5, 6, 8 }; //segment 위치 핀
-//Set DIG1, DIG2, DIG3, DIG4
-int d1 = 2;  // Thousand
-int d2 = 5; // Hundred
-int d3 = 6; //이전 핀번호(6) Ten
-int d4 = 8;//이전 핀번호 (8) One
 
 int val4 = 0;  // DIG1 용 변수
 int val3 = 0;  // DIG2 용 변수
