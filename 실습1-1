@@ -1,6 +1,5 @@
 // 실습1 DHT11을 사용하여 온도를 측정하여 시리얼 모니터로 출력하시오.
-#include <DHT.h>
-#include <DHT_U.h>
+#include "DHT.h"
 
 #define DHTPIN A1
 #define DHTTYPE DHT11
@@ -8,6 +7,7 @@ DHT dht(DHTPIN, DHTTYPE);
 
 void setup(){
   Serial.begin(9600);
+  dht.begin();
 }
 
 void loop(){
