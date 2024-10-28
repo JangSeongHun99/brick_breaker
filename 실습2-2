@@ -3,54 +3,45 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 
-#define DHTPIN A0 //실습 2-2에서 선 정리를 위해 온도센서 핀 변경
+#define DHTPIN A0
 #define DHTTYPE DHT11
 
-//실습2-2 추가 시작
 #define CLOCK_PIN A3  // 클럭 핀을 아날로그 핀 A1에 연결
 #define LATCH_PIN A2  // 래치 핀을 아날로그 핀 A2에 연결
-int dataPin = 1; //Pin connected to DS of 74HC595
-//실습2-2 추가 끝
+int dataPin = 3; //Pin connected to DS of 74HC595
+
 DHT dht(DHTPIN, DHTTYPE);
 
-//Set anode interface
-int a = 3;
-int b = 7;
-int c = 10;
-int d = 12;
-int e = 13;
-int f = 4;
-int g = 9;
-int p = 11;    //The decimal point
-
+//a,b,c,d,e,f,g 상태값  (74HC595 이후 수정)
+byte segValue[10] = {
+  0b00000011, //
+  0b10011111, //1
+  0b00100101, //2
+  0b00001101, //3
+  0b10011001, //4
+  0b01001001, //5
+  0b01000001, //6 
+  0b00011111, //7 
+  0b00000001, //8 
+  0b00001001, //9 
+};
+byte digitPin[4] = { 2, 5, 6, 8 }; //segment 위치 핀
 //Set DIG1, DIG2, DIG3, DIG4
-int d1 = 2; //Thousand
-int d2 = 5; //Hundred
-int d3 = 6; //Ten
-int d4 = 8;//One
+int d1 = 2;  // Thousand
+int d2 = 5; // Hundred
+int d3 = 6; //이전 핀번호(6) Ten
+int d4 = 8;//이전 핀번호 (8) One
 
 int val4 = 0;  // DIG1 용 변수
 int val3 = 0;  // DIG2 용 변수
 int val2 = 0;  // DIG3 용 변수
 int val1 = 0;  // DIG4 용 변수
 
-const int DELAY = 1000;  // led display delay
+const int DELAY = 300;  // led display delay
 int val = 0;
 int temp = NULL;
+int prevTemp = NULL;
 int prevTime = 0; //실습3 추가
-int digitpin[5] = { -1, d4, d3, d2, d1 };
-
-#define _0 {    LOW, LOW, LOW, LOW, LOW, LOW, HIGH }
-#define _1 {    HIGH, LOW, LOW, HIGH, HIGH, HIGH, HIGH }
-#define _2 {    LOW, LOW, HIGH, LOW, LOW, HIGH, LOW }
-#define _3 {    LOW, LOW, LOW, LOW, HIGH, HIGH, LOW }
-#define _4 {    HIGH, LOW, LOW, HIGH, HIGH, LOW, LOW }
-#define _5 {    LOW, HIGH, LOW, LOW, HIGH, LOW, LOW }
-#define _6 {    LOW, HIGH, LOW, LOW, LOW, LOW, LOW }
-#define _7 {    LOW, LOW, LOW, HIGH, HIGH, HIGH, HIGH }
-#define _8 {    LOW, LOW, LOW, LOW, LOW, LOW, LOW }
-#define _9 {    LOW, LOW, LOW, LOW, HIGH, LOW, LOW }
-int num_bit[10][7] = { _0, _1, _2, _3, _4, _5, _6, _7, _8,_9 };
 
 //  LCD part, Set the LCD address to 0x27 for a 16 chars and 2 line display
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -65,18 +56,10 @@ void setup(){
   pinMode(CLOCK_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
 
-  pinMode(d1, OUTPUT);
-	pinMode(d2, OUTPUT);
-	pinMode(d3, OUTPUT);
-	pinMode(d4, OUTPUT);
-	pinMode(a, OUTPUT);
-	pinMode(b, OUTPUT);
-	pinMode(c, OUTPUT);
-	pinMode(d, OUTPUT);
-	pinMode(e, OUTPUT);
-	pinMode(f, OUTPUT);
-	pinMode(g, OUTPUT);
-	pinMode(p, OUTPUT);
+  for (int j = 0; j < 4; j++) {
+    pinMode(digitPin[j], OUTPUT);
+    digitalWrite(digitPin[j], LOW); // 초기화 시 모든 자릿수를 꺼둡니다
+  }
   
 	// Turn on the blacklight and print a message.
 	lcd.backlight();
@@ -88,9 +71,9 @@ void loop(){
     temp = getTemp();
     prevTime = currTime;
   }
- if(temp != NULL){
-  showLEDs(temp);
- }
+ if(temp != NULL && temp != prevTemp) prevTemp = temp;
+ if(prevTemp != NULL) showLEDs(prevTemp);
+ 
 }
 int getTemp(){
   int h = dht.readHumidity();
@@ -109,63 +92,38 @@ void showLEDs(int value){
     val2 = (val / 10) % 10;
     val1 = val % 10;
     if (val >= 1000) {	// 천의 자리
-      clearLEDs();
-      pickDigit(4);
-      pickNumber(val4);
-      delayMicroseconds(DELAY);
+      segOutput(0,val4,0);
+
     }
     if (val >= 100) 	{	// 백의 자리
-      clearLEDs();
-      pickDigit(3);
-      pickNumber(val3);
-      delayMicroseconds(DELAY);
+      segOutput(1,val3,0);
     }
     if (val >= 10) {		// 십의 자리
-      clearLEDs();
-      pickDigit(2);
-      pickNumber(val2);
-      delayMicroseconds(DELAY);
+      segOutput(2,val2,0);
+
     }
       if (val >= 0) {		// 일의 자리
-      clearLEDs();
-      pickDigit(1);
-      pickNumber(val1);
-      delayMicroseconds(DELAY);
+      segOutput(3,val1,0);
+
 	}
 } 
 
-void pickDigit(int x) {
-  digitalWrite(d1, LOW);
-  digitalWrite(d2, LOW);
-  digitalWrite(d3, LOW);
-  digitalWrite(d4, LOW);
-  digitalWrite(digitpin[x], HIGH);
-}
-
-void pickNumber(int n) {
-	digitalWrite(a, num_bit[n][0]);
-	digitalWrite(b, num_bit[n][1]);
-	digitalWrite(c, num_bit[n][2]);
-	digitalWrite(d, num_bit[n][3]);
-	digitalWrite(e, num_bit[n][4]);
-	digitalWrite(f, num_bit[n][5]);
-	digitalWrite(g, num_bit[n][6]);
+void segOutput(int d, int Number, int dp)
+{
+    clearLEDs();
+    digitalWrite(digitPin[d], HIGH);
+    digitalWrite(LATCH_PIN, LOW);
+    shiftOut(dataPin, CLOCK_PIN, LSBFIRST, segValue[Number]);
+    digitalWrite(LATCH_PIN, HIGH);    
+    delayMicroseconds(500);
+    digitalWrite(digitPin[d], LOW);
 }
 void clearLEDs() {
-	digitalWrite(a, HIGH);
-	digitalWrite(b, HIGH);
-	digitalWrite(c, HIGH);
-	digitalWrite(d, HIGH);
-	digitalWrite(e, HIGH);
-	digitalWrite(f, HIGH);
-	digitalWrite(g, HIGH);
-	digitalWrite(p, HIGH);
+    digitalWrite(LATCH_PIN, LOW);
+    shiftOut(dataPin, CLOCK_PIN, LSBFIRST, 0b11111111);
+    digitalWrite(LATCH_PIN, HIGH);      
 }
 
-void dpoint() //Light the decimal point
-{
-	digitalWrite(p, LOW);
-}
 
 void expansion_control(int expansionData) {
   digitalWrite(LATCH_PIN, LOW);
